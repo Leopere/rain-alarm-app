@@ -1,0 +1,17 @@
+{
+  "name": "rain-alarm-app",
+  "version": "0.2.3",
+  "description": "Electron wrapper for the Rain Alarm web app.",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "package": "./scripts/package.sh",
+    "package:release": "./scripts/package-release.sh",
+    "install-app": "./scripts/install.sh"
+  },
+  "devDependencies": {
+    "@electron/packager": "20.0.1",
+    "electron": "42.3.3"
+  }
+}
