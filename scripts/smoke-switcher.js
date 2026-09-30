@@ -7,6 +7,11 @@ const { createWindow, installPermissionPolicy, selectedSite } = require('../src/
 
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'rain-switcher-'));
 app.setPath('userData', profile);
+// The reopen assertion deliberately closes the last window without quitting.
+app.on('window-all-closed', () => {});
+// Keep automation running when the Mac has no visible display.
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows');
 const deadline = setTimeout(() => { console.error('Weather switcher smoke timed out.'); app.exit(1); }, 40000);
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 let window;
@@ -30,12 +35,14 @@ async function checkPage(site, hostname) {
     return { count: links?.length, active: active?.dataset.site,
       visible: host?.getBoundingClientRect().width > 0,
       map: !!document.querySelector('.leaflet-container'),
+      tiles: [...document.querySelectorAll('.leaflet-tile-loaded')].filter(tile => tile.complete && tile.naturalWidth > 0).length,
       title: document.title, body: document.body.innerText.length };
   })()`);
   assert.equal(state.count, 2);
   assert.equal(state.active, site);
   assert.equal(state.visible, true);
   assert.equal(state.map, true, 'The live map must render.');
+  assert.ok(state.tiles > 0, 'The live map must load its image tiles.');
   assert.ok(state.body > 20, 'The page must have meaningful content.');
   assert.equal(selectedSite(), site, 'Selection must be saved by the real main process.');
   if (process.env.RAIN_ALARM_SCREENSHOT_DIR) {
@@ -51,6 +58,7 @@ app.whenReady().then(async () => {
     console.log('Weather smoke: Electron ready.');
     installPermissionPolicy();
     window = createWindow();
+    window.webContents.setBackgroundThrottling(false);
     await loaded();
     await delay(4000);
     console.log('Weather smoke: rain page loaded.');
@@ -64,6 +72,7 @@ app.whenReady().then(async () => {
     const severe = await checkPage('severe', 'www.unwx.app');
     window.destroy();
     window = createWindow();
+    window.webContents.setBackgroundThrottling(false);
     await loaded();
     await delay(1000);
     assert.equal(new URL(window.webContents.getURL()).hostname, 'www.unwx.app', 'Reopen must restore Severe weather.');

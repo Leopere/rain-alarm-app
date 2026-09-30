@@ -524,7 +524,7 @@
     const host = document.createElement('div');
     host.id = 'rain-alarm-switcher';
     // A shadow root keeps site CSS and the dialog auto-clicker away from these links.
-    host.style.cssText = 'position:fixed!important;top:12px!important;left:50%!important;transform:translateX(-50%)!important;z-index:2147483647!important;display:block!important;';
+    host.style.cssText = 'position:fixed!important;bottom:44px!important;left:50%!important;transform:translateX(-50%)!important;z-index:2147483647!important;display:block!important;';
     const root = host.attachShadow({ mode: 'open' });
     root.innerHTML = `
       <style>
