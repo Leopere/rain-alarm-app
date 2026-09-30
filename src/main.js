@@ -1,14 +1,21 @@
-const { app, BrowserWindow, Menu, session, desktopCapturer, WebContentsView, ipcMain } = require('electron');
+const { app, BrowserWindow, Menu, session, desktopCapturer, WebContentsView } = require('electron');
 const path = require('node:path');
-const { pathToFileURL } = require('node:url');
+const fs = require('node:fs');
 
 const { SITES, siteForUrl, permissionAllowed } = require('./weather-sites');
-const MAPS = Object.entries(SITES).map(([id, site]) => ({ id, name: site.label, url: site.url, description: site.description }));
-const SHELL_URL = pathToFileURL(path.join(__dirname, 'index.html')).href;
-const TOOLBAR_HEIGHT = 112;
+const MAPS = Object.entries(SITES).map(([id, site]) => ({ id, name: site.label, ...site }));
+const EARTH_CSS = fs.readFileSync(path.join(__dirname, 'earth.css'), 'utf8');
 
 function isMapUrl(map, value) {
-  return siteForUrl(value) === map.id;
+  return siteForUrl(value) === (map.provider || map.id);
+}
+
+function selectedSite() {
+  try {
+    const { site } = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'weather-site.json'), 'utf8'));
+    if (Object.hasOwn(SITES, site)) return site;
+  } catch { /* First launch defaults to rain radar. */ }
+  return 'rain';
 }
 
 function isRainAlarmUrl(value) {
@@ -96,109 +103,95 @@ function installPermissionPolicy() {
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1120, height: 820, minWidth: 620, minHeight: 480,
-    title: 'Rain Alarm', backgroundColor: '#f5f7fa', show: false,
-    webPreferences: {
-      preload: path.join(__dirname, 'shell-preload.js'),
-      contextIsolation: true, nodeIntegration: false, sandbox: true,
-    },
+    title: 'Rain Alarm', backgroundColor: '#111', show: false,
+    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   const views = new Map();
-  const statuses = new Map();
   let selected;
+  let selectedMap;
 
   function resize() {
     const [width, height] = mainWindow.getContentSize();
-    selected?.setBounds({ x: 0, y: TOOLBAR_HEIGHT, width, height: Math.max(0, height - TOOLBAR_HEIGHT) });
+    selected?.setBounds({ x: 0, y: 0, width, height });
   }
-
-  function status(map, phase, message = '') {
-    const value = { id: map.id, phase, message };
-    statuses.set(map.id, value);
-    if (!mainWindow.isDestroyed()) mainWindow.webContents.send('maps:status', value);
+  function title(map, state = '') {
+    if (!mainWindow.isDestroyed() && selectedMap === map) {
+      mainWindow.setTitle(`${map.name} — Rain Alarm${state ? ` · ${state}` : ''}`);
+    }
   }
-
-  function select(id) {
-    const map = MAPS.find((item) => item.id === id);
-    if (!map) throw new Error('Unknown map');
-    let view = views.get(id);
+  function select(map) {
+    let view = views.get(map.id);
     if (!view) {
       view = new WebContentsView({ webPreferences: {
-        ...(id === 'rain' ? { preload: path.join(__dirname, 'preload.js'), contextIsolation: false, backgroundThrottling: false } : { contextIsolation: true }),
+        ...(map.id === 'rain' ? { preload: path.join(__dirname, 'preload.js'), contextIsolation: false, backgroundThrottling: false } : { contextIsolation: true }),
         nodeIntegration: false, sandbox: true, webSecurity: true,
       } });
-      views.set(id, view);
+      views.set(map.id, view);
       const contents = view.webContents;
-      contents.on('did-start-loading', () => status(map, 'loading'));
-      contents.on('did-stop-loading', () => {
-        if (statuses.get(id)?.phase !== 'error') status(map, 'ready');
+      contents.on('did-start-loading', () => { view.failed = false; title(map, 'Loading'); });
+      contents.on('did-finish-load', () => {
+        if (!view.failed) title(map);
+        if (map.provider === 'earth') contents.insertCSS(EARTH_CSS).catch(console.error);
       });
       contents.on('did-fail-load', (_event, code, _description, _url, isMainFrame) => {
-        if (isMainFrame && code !== -3) status(map, 'error', 'Could not load this map. Reload to try again.');
+        if (isMainFrame && code !== -3) { view.failed = true; title(map, 'Unavailable — ⌘R to retry'); }
       });
-      contents.on('render-process-gone', () => status(map, 'error', 'This map stopped responding. Reload to try again.'));
+      contents.on('render-process-gone', () => { view.failed = true; title(map, 'Unavailable — ⌘R to retry'); });
       contents.setWindowOpenHandler(({ url }) => {
         if (isMapUrl(map, url)) contents.loadURL(url).catch(() => {});
         return { action: 'deny' };
       });
       for (const eventName of ['will-navigate', 'will-redirect']) {
         contents.on(eventName, (event, url) => {
-          if (!isMapUrl(map, url)) {
-            event.preventDefault();
-          }
+          if (!isMapUrl(map, url)) event.preventDefault();
         });
       }
-      if (id === 'rain') {
+      if (map.id === 'rain') {
         contents.on('will-prevent-unload', (event) => event.preventDefault());
         contents.on('select-bluetooth-device', (event, devices, callback) => {
           event.preventDefault();
           callback(isRainAlarmWebContents(contents) ? devices[0]?.deviceId || '' : '');
         });
       }
-      status(map, 'loading');
       contents.loadURL(map.url).catch(() => {});
     }
     if (selected) mainWindow.contentView.removeChildView(selected);
     selected = view;
+    selectedMap = map;
     mainWindow.contentView.addChildView(view);
     resize();
-    mainWindow.setTitle(`${map.name} — Rain Alarm`);
-    return statuses.get(id);
-  }
-
-  // Only the bundled main frame may control the map views.
-  const channels = ['maps:list', 'maps:select', 'maps:reload'];
-  function handle(channel, action) {
-    ipcMain.handle(channel, (event, ...args) => {
-      if (event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame || event.senderFrame.url !== SHELL_URL) {
-        throw new Error('Untrusted map control request');
-      }
-      return action(...args);
-    });
-  }
-  handle('maps:list', () => MAPS);
-  handle('maps:select', select);
-  handle('maps:reload', () => selected?.webContents.reload());
-  mainWindow.on('resize', resize);
-  mainWindow.once('ready-to-show', () => mainWindow.show());
-  mainWindow.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  mainWindow.webContents.on('will-navigate', (event) => event.preventDefault());
-  mainWindow.on('closed', () => {
-    channels.forEach((channel) => ipcMain.removeHandler(channel));
-    for (const view of views.values()) {
-      if (!view.webContents.isDestroyed()) view.webContents.close();
+    title(map, view.failed ? 'Unavailable — ⌘R to retry' : view.webContents.isLoading() ? 'Loading' : '');
+    const menu = Menu.getApplicationMenu();
+    for (const item of MAPS) menu.getMenuItemById(item.id).checked = item.id === map.id;
+    try {
+      const file = path.join(app.getPath('userData'), 'weather-site.json');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(`${file}.tmp`, JSON.stringify({ site: map.id }), { mode: 0o600 });
+      fs.renameSync(`${file}.tmp`, file);
+    } catch (error) {
+      console.warn('Could not save the selected map:', error.message);
     }
+  }
+  const menuItem = (map, index) => ({
+    id: map.id, label: map.name, type: 'checkbox', accelerator: `CmdOrCtrl+${index + 1}`,
+    click: () => select(map),
   });
   Menu.setApplicationMenu(Menu.buildFromTemplate([
     { role: 'appMenu' },
-    { label: 'Maps', submenu: MAPS.map((map, index) => ({
-      label: map.name, accelerator: `CmdOrCtrl+${index + 1}`,
-      click: () => mainWindow.webContents.executeJavaScript(`document.getElementById('map').value = ${JSON.stringify(map.id)}; document.getElementById('map').dispatchEvent(new Event('change'));`).catch(console.error),
-    })) },
+    { label: 'Maps', submenu: [
+      ...MAPS.filter((map) => map.provider !== 'earth').map(menuItem),
+      { label: 'Earth Nullschool', submenu: MAPS.filter((map) => map.provider === 'earth').map((map) => menuItem(map, MAPS.indexOf(map))) },
+    ] },
     { role: 'editMenu' },
-    { label: 'View', submenu: [{ label: 'Reload map', accelerator: 'CmdOrCtrl+R', click: () => selected?.webContents.reload() }] },
+    { label: 'View', submenu: [{ id: 'reload-map', label: 'Reload map', accelerator: 'CmdOrCtrl+R', click: () => selected?.webContents.reload() }] },
     { role: 'windowMenu' },
   ]));
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  mainWindow.on('resize', resize);
+  mainWindow.on('closed', () => {
+    for (const view of views.values()) if (!view.webContents.isDestroyed()) view.webContents.close();
+  });
+  select(MAPS.find((map) => map.id === selectedSite()));
+  mainWindow.show();
   return mainWindow;
 }
 
@@ -221,4 +214,4 @@ if (require.main === module) app.on('window-all-closed', () => {
   app.quit();
 });
 
-module.exports = { createWindow, installPermissionPolicy, MAPS, isMapUrl };
+module.exports = { createWindow, installPermissionPolicy, MAPS, isMapUrl, selectedSite };

@@ -2,21 +2,22 @@
 
 A small Electron app with one window and a map switcher.
 
-Choose a map in the toolbar:
+Choose a map from the macOS **Maps** menu:
 
 - **Rain Alarm** — live rain radar and approaching-rain alerts.
 - **UnWX** — [Rain Alarm’s sister site](https://www.unwx.app/pwa/) for official severe-weather warnings.
 - **Environment Canada** — Canadian radar and official weather alerts.
 - **Windy** — wind, rain, temperature, and forecast models.
 - **LightningMaps** — real-time lightning activity.
+- **Earth Nullschool** — Surface wind, Temperature, and Ocean currents presets, using current data and a globe projection. Its configuration menu and promotional panels are hidden; map information and attribution remain visible.
 
-Maps load when first selected and retain their view while you switch. The app remembers your last selection. Reload retries a failed map; Links stay within the selected provider’s site; outside links and pop-up windows are blocked. Each provider keeps its own account, map settings, and location. Maps require an internet connection.
+Maps load when first selected and retain their view while you switch. The app remembers your last selection. ⌘R retries a failed map. Links stay within the selected provider’s site; outside links and pop-up windows are blocked. Each provider keeps its own account, map settings, and location. Maps require an internet connection.
 
 Rain Alarm’s existing browser permissions and automation apply only to Rain Alarm. UnWX can request location and notifications; the other maps can request location but do not receive the Rain Alarm preload or access to the local switcher. HTTPS certificate validation remains enabled for all providers.
 
 For Rain Alarm, the app suppresses JavaScript dialogs, clicks positive or dismissive modal actions, provides an IP-based geolocation fallback, and reloads automatically when the refresh-timeout UI appears.
 
-Use ⌘1–⌘5 or the Maps menu to switch maps, and ⌘R to reload the active map.
+Use ⌘1–⌘8 or the Maps menu to switch maps, and ⌘R to reload the active map. There is no toolbar, preset setup, or app settings screen. The window title reports loading or a failed map.
 
 ## Install
 
@@ -68,7 +69,7 @@ The generated app and zip are written to `release/`.
 npm test
 ```
 
-The Electron smoke test uses local fixtures to check all map choices, switching and retained state, renderer isolation, invalid inputs, load failure and retry, blocked external links, minimum window width, and renderer cleanup. Provider availability is separate from this deterministic check.
+The Electron smoke test uses local fixtures to check all map choices, switching and retained state, renderer isolation, menu selection, load failure and retry, blocked external links, Earth UI cleanup, full-window sizing, and renderer cleanup. Provider availability is separate from this deterministic check.
 
 ## Delivery
 

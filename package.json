@@ -1,6 +1,6 @@
 {
   "name": "rain-alarm-app",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Rain radar, severe-weather warnings, and weather maps in one desktop app.",
   "private": true,
   "main": "src/main.js",
