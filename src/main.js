@@ -1,24 +1,18 @@
 const { app, BrowserWindow, Menu, shell, session, desktopCapturer } = require('electron');
 const path = require('node:path');
-
-const APP_URL = 'https://www.rain-alarm.com/';
-const APP_ORIGINS = new Set([
-  'https://www.rain-alarm.com',
-  'https://rain-alarm.com',
-  'https://app.rain-alarm.com',
-]);
+const fs = require('node:fs');
+const { SITES, siteForUrl, permissionAllowed } = require('./weather-sites');
 
 function isRainAlarmUrl(value) {
-  if (!value) {
-    return false;
-  }
+  return siteForUrl(value) === 'rain';
+}
 
+function selectedSite() {
   try {
-    const url = new URL(value);
-    return url.protocol === 'https:' && APP_ORIGINS.has(url.origin);
-  } catch {
-    return false;
-  }
+    const site = JSON.parse(fs.readFileSync(path.join(app.getPath('userData'), 'weather-site.json'), 'utf8')).site;
+    if (Object.hasOwn(SITES, site)) return site;
+  } catch { /* First launch or a damaged preference falls back to radar. */ }
+  return 'rain';
 }
 
 function requestOrigin(webContents, details = {}) {
@@ -39,12 +33,12 @@ function isRainAlarmWebContents(webContents) {
 function installPermissionPolicy() {
   const defaultSession = session.defaultSession;
 
-  defaultSession.setPermissionRequestHandler((webContents, _permission, callback, details) => {
-    callback(isRainAlarmUrl(requestOrigin(webContents, details)));
+  defaultSession.setPermissionRequestHandler((webContents, permission, callback, details) => {
+    callback(permissionAllowed(requestOrigin(webContents, details), permission));
   });
 
-  defaultSession.setPermissionCheckHandler((webContents, _permission, requestingOrigin, details) => {
-    return isRainAlarmUrl(requestingOrigin) || isRainAlarmUrl(requestOrigin(webContents, details));
+  defaultSession.setPermissionCheckHandler((webContents, permission, requestingOrigin, details) => {
+    return permissionAllowed(requestingOrigin || requestOrigin(webContents, details), permission);
   });
 
   defaultSession.setDevicePermissionHandler((details) => {
@@ -121,21 +115,34 @@ function createWindow() {
   });
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (isRainAlarmUrl(url)) {
-      return { action: 'allow' };
+    if (siteForUrl(url)) {
+      mainWindow.loadURL(url).catch(console.error);
+    } else {
+      openExternal(url);
     }
-
-    shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (isRainAlarmUrl(url)) {
-      return;
-    }
-
+  function guardNavigation(event, url) {
+    if (siteForUrl(url)) return;
     event.preventDefault();
-    shell.openExternal(url);
+    openExternal(url);
+  }
+  mainWindow.webContents.on('will-navigate', guardNavigation);
+  mainWindow.webContents.on('will-redirect', guardNavigation);
+
+  mainWindow.webContents.on('did-navigate', (_event, url) => {
+    const site = siteForUrl(url);
+    if (!site) return;
+    mainWindow.setTitle(`Rain Alarm · ${SITES[site].label}`);
+    try {
+      const file = path.join(app.getPath('userData'), 'weather-site.json');
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(`${file}.tmp`, JSON.stringify({ site }), { mode: 0o600 });
+      fs.renameSync(`${file}.tmp`, file);
+    } catch (error) {
+      console.warn('Could not save the selected weather view:', error.message);
+    }
   });
 
   mainWindow.webContents.on('will-prevent-unload', (event) => {
@@ -147,29 +154,46 @@ function createWindow() {
     callback(isRainAlarmWebContents(mainWindow.webContents) ? devices[0]?.deviceId || '' : '');
   });
 
-  mainWindow.loadURL(APP_URL);
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    { role: 'appMenu' },
+    { label: 'Weather', submenu: Object.values(SITES).map(({ label, url }, index) => ({
+      label, accelerator: `CmdOrCtrl+${index + 1}`, click: () => mainWindow.loadURL(url).catch(console.error),
+    })) },
+    { role: 'editMenu' }, { role: 'viewMenu' }, { role: 'windowMenu' },
+  ]));
+  mainWindow.loadURL(SITES[selectedSite()].url).catch(console.error);
+  return mainWindow;
 }
 
-app.setName('Rain Alarm');
-app.setPath('userData', path.join(app.getPath('appData'), 'Rain Alarm'));
+function openExternal(value) {
+  try {
+    if (['https:', 'http:', 'mailto:'].includes(new URL(value).protocol)) shell.openExternal(value).catch(console.error);
+  } catch { /* Ignore malformed or executable links. */ }
+}
 
-app.whenReady().then(() => {
-  Menu.setApplicationMenu(null);
-  installPermissionPolicy();
-  createWindow();
+if (require.main === module) {
+  app.setName('Rain Alarm');
+  app.setPath('userData', path.join(app.getPath('appData'), 'Rain Alarm'));
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+  app.whenReady().then(() => {
+    installPermissionPolicy();
+    createWindow();
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) {
+        createWindow();
+      }
+    });
   });
-});
 
-app.on('certificate-error', (event, webContents, url, _error, _certificate, callback) => {
-  event.preventDefault();
-  callback(isRainAlarmUrl(url) || isRainAlarmWebContents(webContents));
-});
+  app.on('certificate-error', (event, _webContents, url, _error, _certificate, callback) => {
+    event.preventDefault();
+    callback(isRainAlarmUrl(url));
+  });
 
-app.on('window-all-closed', () => {
-  app.quit();
-});
+  app.on('window-all-closed', () => {
+    app.quit();
+  });
+}
+
+module.exports = { createWindow, installPermissionPolicy, selectedSite };

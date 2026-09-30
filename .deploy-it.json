@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "after_ship": true,
+  "environment": "production",
+  "command": [
+    "/opt/homebrew/bin/python3",
+    "/Users/aedev/.local/share/jenkins-local/jenkins-delivery.py",
+    "release-rain"
+  ],
+  "env": [],
+  "timeout_seconds": 600
+}

@@ -9,6 +9,7 @@ ICON_ICNS="${BUILD_DIR}/rain-alarm.icns"
 DIST_DIR="${ROOT_DIR}/dist"
 
 cd "${ROOT_DIR}"
+VERSION="$(node -p "require('./package.json').version")"
 
 command -v npm >/dev/null
 command -v sips >/dev/null
@@ -51,8 +52,8 @@ npm exec -- electron-packager . "Rain Alarm" \
   --out="${DIST_DIR}" \
   --overwrite \
   --app-bundle-id="ca.aedev.rain-alarm" \
-  --app-version="0.2.3" \
-  --build-version="5" \
+  --app-version="${VERSION}" \
+  --build-version="${VERSION}" \
   --extend-info="${ROOT_DIR}/resources/extend-info.plist" \
   --ignore="^/dist($|/)" \
   --ignore="^/release($|/)" \
@@ -62,5 +63,7 @@ npm exec -- electron-packager . "Rain Alarm" \
 PACKAGED_APP="${DIST_DIR}/Rain Alarm-darwin-arm64/Rain Alarm.app"
 cp "${ICON_ICNS}" "${PACKAGED_APP}/Contents/Resources/rain-alarm.icns"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile rain-alarm" "${PACKAGED_APP}/Contents/Info.plist"
+
+codesign --force --deep --sign - "${PACKAGED_APP}" >/dev/null
 
 echo "${PACKAGED_APP}"

@@ -518,6 +518,49 @@
     observe();
   }
 
+  function installWeatherSwitcher() {
+    if (window.top !== window || document.getElementById('rain-alarm-switcher')) return;
+    const severe = ['www.unwx.app', 'unwx.app'].includes(location.hostname);
+    const host = document.createElement('div');
+    host.id = 'rain-alarm-switcher';
+    // A shadow root keeps site CSS and the dialog auto-clicker away from these links.
+    host.style.cssText = 'position:fixed!important;top:12px!important;left:50%!important;transform:translateX(-50%)!important;z-index:2147483647!important;display:block!important;';
+    const root = host.attachShadow({ mode: 'open' });
+    root.innerHTML = `
+      <style>
+        :host { color-scheme: light dark; }
+        nav { display:flex; gap:4px; padding:5px; border:1px solid #ffffff30;
+          border-radius:16px; background:#172132ed; box-shadow:0 5px 24px #08142638;
+          backdrop-filter:blur(20px); font:600 13px/1.2 -apple-system,BlinkMacSystemFont,sans-serif; }
+        a { display:flex; align-items:center; gap:8px; padding:11px 15px; color:#d8e2ef;
+          text-decoration:none; border-radius:11px; white-space:nowrap; transition:background .15s; }
+        a:hover { background:#ffffff15; }
+        a[aria-current="page"] { background:#e9f2ff; color:#163552; box-shadow:0 1px 5px #0002; }
+        a[data-site="severe"][aria-current="page"] { background:#fff0d8; color:#68470f; }
+        a:focus-visible { outline:3px solid #69b9ff; outline-offset:2px; }
+        svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7;
+          stroke-linecap:round; stroke-linejoin:round; }
+        @media (prefers-reduced-motion:reduce) { a { transition:none; } }
+      </style>
+      <nav aria-label="Weather views">
+        <a data-site="rain" href="https://www.rain-alarm.com/" title="Rain radar · ⌘1" ${!severe ? 'aria-current="page"' : ''}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 15a4 4 0 0 1-1-8 6 6 0 0 1 11-1 4.5 4.5 0 0 1 1 9"/><path d="m8 18-1 3m6-3-1 3m6-3-1 3"/></svg>
+          Rain radar
+        </a>
+        <a data-site="severe" href="https://www.unwx.app/pwa/" title="UnWX severe-weather warnings · ⌘2" ${severe ? 'aria-current="page"' : ''}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 4a2 2 0 0 1 3.4 0l8 14a2 2 0 0 1-1.7 3H4a2 2 0 0 1-1.7-3Z"/><path d="M12 9v5m0 3h.01"/></svg>
+          Severe weather
+        </a>
+      </nav>`;
+    root.addEventListener('click', (event) => event.stopPropagation());
+    document.body.append(host);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', installWeatherSwitcher, { once: true });
+  } else {
+    installWeatherSwitcher();
+  }
   installBrowserPromptBypass();
   installGeolocationFallback();
   installDialogAutoClicker();

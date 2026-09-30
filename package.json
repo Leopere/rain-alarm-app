@@ -1,10 +1,12 @@
 {
   "name": "rain-alarm-app",
-  "version": "0.2.3",
-  "description": "Electron wrapper for the Rain Alarm web app.",
+  "version": "0.2.4",
+  "description": "Rain radar and UnWX severe-weather warnings in one desktop app.",
   "private": true,
   "main": "src/main.js",
   "scripts": {
+    "check": "node scripts/check-switcher.js",
+    "smoke": "electron scripts/smoke-switcher.js",
     "start": "electron .",
     "package": "./scripts/package.sh",
     "package:release": "./scripts/package-release.sh",
