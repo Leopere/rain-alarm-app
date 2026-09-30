@@ -53,15 +53,25 @@ app.whenReady().then(async () => {
     const bounds = view.getBounds();
     assert.equal(bounds.y, 112);
     assert.equal(bounds.width, window.getContentSize()[0]);
+    const beforeUrl = view.webContents.getURL();
+    const viewCount = window.contentView.children.length;
+    const navigation = new Promise((resolve) => view.webContents.once('will-navigate', resolve));
+    await view.webContents.executeJavaScript("const link = document.createElement('a'); link.href = 'https://outside.example/'; document.body.append(link); link.click();", true);
+    await navigation;
+    assert.equal(view.webContents.getURL(), beforeUrl, 'Outside navigation must stay blocked');
+    await view.webContents.executeJavaScript("window.open('https://outside.example/', '_blank')", true);
+    const detail = new URL('/fixture-detail', map.url).href;
+    await view.webContents.executeJavaScript(`window.open(${JSON.stringify(detail)}, '_blank')`, true);
+    await until(() => view.webContents.getURL() === detail && !view.webContents.isLoading());
+    assert.equal(window.contentView.children.length, viewCount, 'Allowed links must reuse the same view');
   }
   const view = window.contentView.children.at(-1);
   await view.webContents.executeJavaScript('window.retainedMapState = 42');
   await run("(async () => { await window.maps.select('rain'); await window.maps.select('lightning'); })()");
   assert.equal(await view.webContents.executeJavaScript('window.retainedMapState'), 42);
   assert.equal(await run("window.maps.select('invalid').then(() => false, () => true)"), true);
-  await run("document.getElementById('open').click()");
-  await until(() => external.length === 1);
-  assert.equal(external[0], MAPS.at(-1).url);
+  assert.equal(await run("document.getElementById('open')"), null);
+  assert.equal(external.length, 0, 'Map links must never launch an external application');
   fail = true;
   await run("document.getElementById('reload').click()");
   await until(() => run('document.getElementById("status").dataset.phase === "error"'));
@@ -84,7 +94,7 @@ app.whenReady().then(async () => {
   reopened.destroy();
   assert.equal(errors.length, 0, errors.join('\n'));
   clearTimeout(deadline);
-  console.log(`PASS: ${MAPS.length} maps, switching, retained state, saved selection, isolation, invalid inputs, error/retry, links, minimum width, renderer cleanup`);
+  console.log(`PASS: ${MAPS.length} maps, switching, retained state, saved selection, isolation, blocked external links, same-view links, error/retry, minimum width, renderer cleanup`);
   app.quit();
 }).catch((error) => {
   console.error(error);

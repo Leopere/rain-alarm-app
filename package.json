@@ -1,12 +1,7 @@
 {
   "name": "rain-alarm-app",
-<<<<<<< Updated upstream
-  "version": "0.2.4",
-  "description": "Rain radar and UnWX severe-weather warnings in one desktop app.",
-=======
   "version": "0.3.0",
-  "description": "Electron wrapper for the Rain Alarm web app.",
->>>>>>> Stashed changes
+  "description": "Rain radar, severe-weather warnings, and weather maps in one desktop app.",
   "private": true,
   "main": "src/main.js",
   "scripts": {

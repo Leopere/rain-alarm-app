@@ -2,7 +2,6 @@ const picker = document.getElementById('map');
 const description = document.getElementById('description');
 const status = document.getElementById('status');
 const reload = document.getElementById('reload');
-const open = document.getElementById('open');
 
 function showStatus(value) {
   if (!value || value.id !== picker.value) return;
@@ -27,9 +26,8 @@ window.maps.list().then(async (catalog) => {
   }
   picker.addEventListener('change', select);
   reload.addEventListener('click', () => window.maps.reload());
-  open.addEventListener('click', () => window.maps.open());
   await select();
-  picker.disabled = reload.disabled = open.disabled = false;
+  picker.disabled = reload.disabled = false;
 }).catch(() => {
   status.dataset.phase = 'error';
   status.textContent = 'Could not start the map switcher. Please restart the app.';
