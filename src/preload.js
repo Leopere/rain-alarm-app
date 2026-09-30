@@ -1,4 +1,5 @@
 (() => {
+  if (!['https://www.rain-alarm.com', 'https://rain-alarm.com', 'https://app.rain-alarm.com'].includes(location.origin)) return;
   const GEO_CACHE_KEY = 'rainAlarm.geolocationFallback';
   const GEO_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
   const GEO_WATCH_INTERVAL_MS = 5 * 60 * 1000;

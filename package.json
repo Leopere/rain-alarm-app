@@ -1,13 +1,19 @@
 {
   "name": "rain-alarm-app",
+<<<<<<< Updated upstream
   "version": "0.2.4",
   "description": "Rain radar and UnWX severe-weather warnings in one desktop app.",
+=======
+  "version": "0.3.0",
+  "description": "Electron wrapper for the Rain Alarm web app.",
+>>>>>>> Stashed changes
   "private": true,
   "main": "src/main.js",
   "scripts": {
     "check": "node scripts/check-switcher.js",
     "smoke": "electron scripts/smoke-switcher.js",
     "start": "electron .",
+    "test": "electron scripts/smoke-maps.js",
     "package": "./scripts/package.sh",
     "package:release": "./scripts/package-release.sh",
     "install-app": "./scripts/install.sh"

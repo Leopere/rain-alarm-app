@@ -52,8 +52,13 @@ npm exec -- electron-packager . "Rain Alarm" \
   --out="${DIST_DIR}" \
   --overwrite \
   --app-bundle-id="ca.aedev.rain-alarm" \
+<<<<<<< Updated upstream
   --app-version="${VERSION}" \
   --build-version="${VERSION}" \
+=======
+  --app-version="$(node -p "require('./package.json').version")" \
+  --build-version="6" \
+>>>>>>> Stashed changes
   --extend-info="${ROOT_DIR}/resources/extend-info.plist" \
   --ignore="^/dist($|/)" \
   --ignore="^/release($|/)" \
