@@ -4,7 +4,7 @@ const fs = require('node:fs');
 
 const { SITES, siteForUrl, permissionAllowed } = require('./weather-sites');
 const MAPS = Object.entries(SITES).map(([id, site]) => ({ id, name: site.label, ...site }));
-const EARTH_CSS = fs.readFileSync(path.join(__dirname, 'earth.css'), 'utf8');
+const MAP_CLEANUP_CSS = fs.readFileSync(path.join(__dirname, 'map-cleanup.css'), 'utf8');
 
 function isMapUrl(map, value) {
   return siteForUrl(value) === (map.provider || map.id);
@@ -131,7 +131,7 @@ function createWindow() {
       contents.on('did-start-loading', () => { view.failed = false; title(map, 'Loading'); });
       contents.on('did-finish-load', () => {
         if (!view.failed) title(map);
-        if (map.provider === 'earth') contents.insertCSS(EARTH_CSS).catch(console.error);
+        contents.insertCSS(MAP_CLEANUP_CSS).catch(console.error);
       });
       contents.on('did-fail-load', (_event, code, _description, _url, isMainFrame) => {
         if (isMainFrame && code !== -3) { view.failed = true; title(map, 'Unavailable — ⌘R to retry'); }

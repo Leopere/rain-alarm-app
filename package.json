@@ -5,7 +5,7 @@
   "private": true,
   "main": "src/main.js",
   "scripts": {
-    "check": "node scripts/check-switcher.js",
+    "check": "node scripts/check-switcher.js && node scripts/check-preload.js",
     "smoke": "electron scripts/smoke-switcher.js",
     "start": "electron .",
     "test": "electron scripts/smoke-maps.js",

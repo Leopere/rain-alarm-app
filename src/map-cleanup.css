@@ -1,0 +1,17 @@
+/* Keep map data, legends, and attribution; hide provider setup and sales chrome. */
+.earth-bar, #menu, #menu-sizer, .cta-bar,
+#lang-menu-modal, #choose-date-modal, #notice-modal,
+[data-name="notice-card"],
+.plans, .plansplus, .plans-plus, .planplus,
+[class*="plansplus" i], [id*="plansplus" i],
+[class*="plans-plus" i], [id*="plans-plus" i],
+[class*="premium-banner" i], [id*="premium-banner" i],
+[class*="premium-dialog" i], [id*="premium-dialog" i],
+[class*="premium-modal" i], [id*="premium-modal" i],
+[class*="upgrade-modal" i], [id*="upgrade-modal" i],
+[class*="subscribe-modal" i], [id*="subscribe-modal" i],
+[class*="download-app" i], [id*="download-app" i],
+[class*="install-app" i], [id*="install-app" i],
+.adsbygoogle, [id^="google_ads" i] {
+  display: none !important;
+}

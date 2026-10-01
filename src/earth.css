@@ -1,6 +1,0 @@
-/* Presets replace Earth’s configuration UI; retain map data, legends, and attribution. */
-.earth-bar, #menu, #menu-sizer, .cta-bar,
-#lang-menu-modal, #choose-date-modal, #notice-modal,
-[data-name="notice-card"] {
-  display: none !important;
-}

@@ -27,7 +27,7 @@ app.whenReady().then(async () => {
   protocol.handle('https', () => {
     loads += 1;
     if (fail) throw new Error('Simulated offline map');
-    return new Response('<!doctype html><title>Map fixture</title><h1>Interactive map fixture</h1><div class="earth-bar">Menu</div><div id="menu">Settings</div><div class="cta-bar">Get the app</div><div class="attribution">Nullschool Technologies</div>', { headers: { 'content-type': 'text/html' } });
+    return new Response('<!doctype html><title>Map fixture</title><h1>Interactive map fixture</h1><div class="earth-bar">Menu</div><div id="menu">Settings</div><div class="cta-bar">Get the app</div><div class="plans">Plans</div><div class="plansplus">Plans Plus</div><div class="premium-banner">Premium</div><div class="adsbygoogle">Ad</div><div class="attribution">Nullschool Technologies</div>', { headers: { 'content-type': 'text/html' } });
   });
   let window = createWindow();
   assert.equal(selectedSite(), 'rain');
@@ -44,6 +44,10 @@ app.whenReady().then(async () => {
     assert.equal(selectedSite(), map.id);
     assert.equal(view.getBounds().y, 0, 'Maps must fill the window without a toolbar');
     assert.equal(view.getBounds().height, window.getContentSize()[1]);
+    await until(() => view.webContents.executeJavaScript('getComputedStyle(document.querySelector(".plansplus")).display === "none"'));
+    assert.equal(await view.webContents.executeJavaScript('getComputedStyle(document.querySelector(".plans")).display'), 'none');
+    assert.equal(await view.webContents.executeJavaScript('getComputedStyle(document.querySelector(".premium-banner")).display'), 'none');
+    assert.equal(await view.webContents.executeJavaScript('getComputedStyle(document.querySelector(".adsbygoogle")).display'), 'none');
     if (map.provider === 'earth') {
       await until(() => view.webContents.executeJavaScript('getComputedStyle(document.getElementById("menu")).display === "none"'));
       assert.equal(await view.webContents.executeJavaScript('getComputedStyle(document.querySelector(".cta-bar")).display'), 'none');

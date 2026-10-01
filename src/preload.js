@@ -3,6 +3,7 @@
   const GEO_CACHE_KEY = 'rainAlarm.geolocationFallback';
   const GEO_CACHE_MAX_AGE_MS = 24 * 60 * 60 * 1000;
   const GEO_WATCH_INTERVAL_MS = 5 * 60 * 1000;
+  const GEO_NATIVE_TIMEOUT_MS = 30 * 1000;
   const REFRESH_REQUEST_COOLDOWN_MS = 60 * 1000;
   const geoWatchers = new Map();
   let nextGeoWatchId = 1;
@@ -138,6 +139,29 @@
     }
   }
 
+  function nativeCoordsFromPosition(position) {
+    const coords = position?.coords;
+    if (!Number.isFinite(coords?.latitude) || !Number.isFinite(coords?.longitude)) {
+      return null;
+    }
+
+    return {
+      latitude: coords.latitude,
+      longitude: coords.longitude,
+      accuracy: Number.isFinite(coords.accuracy) ? coords.accuracy : 100,
+      source: 'native',
+    };
+  }
+
+  function optionsWithNativeTimeout(options) {
+    const normalized = options && typeof options === 'object' ? options : {};
+    const timeout = Number(normalized.timeout);
+    return {
+      ...normalized,
+      timeout: Number.isFinite(timeout) ? Math.max(timeout, GEO_NATIVE_TIMEOUT_MS) : GEO_NATIVE_TIMEOUT_MS,
+    };
+  }
+
   async function fetchJsonWithTimeout(url) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
@@ -191,36 +215,64 @@
   }
 
   function installGeolocationFallback() {
+    const nativeGeolocation = navigator.geolocation;
+    const nativeGetCurrentPosition = nativeGeolocation?.getCurrentPosition?.bind(nativeGeolocation);
+
     const geolocation = {
-      getCurrentPosition(success, error) {
-        locateByNetwork()
-          .then((coords) => {
-            if (typeof success === 'function') {
-              success(browserPositionFromCoords(coords));
-            }
-          })
-          .catch((reason) => {
-            if (typeof error === 'function') {
-              error({
-                code: 2,
-                message: reason?.message || 'Position unavailable.',
-                PERMISSION_DENIED: 1,
-                POSITION_UNAVAILABLE: 2,
-                TIMEOUT: 3,
-              });
-            }
-          });
+      getCurrentPosition(success, error, options) {
+        const useFallback = () => {
+          locateByNetwork()
+            .then((coords) => {
+              if (typeof success === 'function') {
+                success(browserPositionFromCoords(coords));
+              }
+            })
+            .catch((reason) => {
+              if (typeof error === 'function') {
+                error({
+                  code: 2,
+                  message: reason?.message || 'Position unavailable.',
+                  PERMISSION_DENIED: 1,
+                  POSITION_UNAVAILABLE: 2,
+                  TIMEOUT: 3,
+                });
+              }
+            });
+        };
+
+        if (nativeGetCurrentPosition) {
+          try {
+            nativeGetCurrentPosition(
+              (position) => {
+                const coords = nativeCoordsFromPosition(position);
+                if (coords) {
+                  writeCachedPosition(coords);
+                }
+                if (typeof success === 'function') {
+                  success(position);
+                }
+              },
+              useFallback,
+              optionsWithNativeTimeout(options),
+            );
+            return;
+          } catch {
+            // Fall through to the app-provided IP fallback.
+          }
+        }
+
+        useFallback();
       },
 
-      watchPosition(success, error) {
+      watchPosition(success, error, options) {
         const id = nextGeoWatchId;
         nextGeoWatchId += 1;
 
-        geolocation.getCurrentPosition(success, error);
+        geolocation.getCurrentPosition(success, error, options);
         geoWatchers.set(
           id,
           setInterval(() => {
-            geolocation.getCurrentPosition(success, error);
+            geolocation.getCurrentPosition(success, error, options);
           }, GEO_WATCH_INTERVAL_MS),
         );
 
@@ -245,6 +297,26 @@
       });
     } catch {
       setValue(navigator, 'geolocation', geolocation);
+    }
+  }
+
+  function primeMachineLocation() {
+    const run = () => {
+      try {
+        navigator.geolocation?.getCurrentPosition?.(
+          () => undefined,
+          () => undefined,
+          { enableHighAccuracy: true, timeout: GEO_NATIVE_TIMEOUT_MS, maximumAge: 0 },
+        );
+      } catch {
+        // The page can still request location later.
+      }
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => setTimeout(run, 500), { once: true });
+    } else {
+      setTimeout(run, 500);
     }
   }
 
@@ -280,7 +352,6 @@
         const granted = new Set([
           'clipboard-read',
           'clipboard-write',
-          'geolocation',
           'notifications',
           'persistent-storage',
           'push',
@@ -521,6 +592,7 @@
 
   installBrowserPromptBypass();
   installGeolocationFallback();
+  primeMachineLocation();
   installDialogAutoClicker();
   installRefreshRequestWatcher();
 })();
