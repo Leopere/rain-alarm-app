@@ -6,7 +6,7 @@ BUILD_DIR="${ROOT_DIR}/build"
 ICONSET="${BUILD_DIR}/rain-alarm.iconset"
 ICON_PNG="${BUILD_DIR}/rain-alarm-512.png"
 ICON_ICNS="${BUILD_DIR}/rain-alarm.icns"
-DIST_DIR="${ROOT_DIR}/dist"
+DIST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/rain-alarm-dist.XXXXXX")"
 
 cd "${ROOT_DIR}"
 VERSION="$(node -p "require('./package.json').version")"
@@ -45,18 +45,20 @@ if [[ ! -d node_modules ]]; then
   npm install
 fi
 
-rm -rf "${DIST_DIR}"
-npm exec -- electron-packager . "Rain Alarm" \
+NODE_OPTIONS="--require=${ROOT_DIR}/scripts/ignore-temp-rmdir-eperm.js ${NODE_OPTIONS:-}" npm exec -- electron-packager . "Rain Alarm" \
   --platform=darwin \
   --arch=arm64 \
   --out="${DIST_DIR}" \
   --overwrite \
+  --no-tmpdir \
+  --download.cacheRoot="${HOME}/Library/Caches/electron" \
   --app-bundle-id="ca.aedev.rain-alarm" \
   --app-version="${VERSION}" \
   --build-version="${VERSION}" \
   --extend-info="${ROOT_DIR}/resources/extend-info.plist" \
   --ignore="^/dist($|/)" \
   --ignore="^/release($|/)" \
+  --ignore="^/\\.tmp($|/)" \
   --ignore="^/\\.git($|/)" \
   --ignore="^/build/rain-alarm\\.iconset($|/)"
 

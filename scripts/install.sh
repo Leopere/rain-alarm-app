@@ -9,7 +9,7 @@ cd "${ROOT_DIR}"
 
 PACKAGED_APP="$("${ROOT_DIR}/scripts/package.sh" | tail -n 1)"
 
-rm -rf "${APP_PATH}"
+rm -rf "${APP_PATH}" 2>/dev/null || true
 ditto "${PACKAGED_APP}" "${APP_PATH}"
 cp "${ICON_ICNS}" "${APP_PATH}/Contents/Resources/rain-alarm.icns"
 /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile rain-alarm" "${APP_PATH}/Contents/Info.plist"
