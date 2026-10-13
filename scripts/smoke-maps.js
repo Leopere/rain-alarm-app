@@ -36,7 +36,7 @@ app.whenReady().then(async () => {
     for (const url of ['http://example.com', 'file:///tmp/map', 'javascript:alert(1)', map.url.replace('https://', 'https://evil.example/?')]) assert(!isMapUrl(map, url));
     choose(map.id);
     const view = active(window);
-    await until(() => !view.webContents.isLoading() && window.getTitle() === `${map.name} — Rain Alarm`);
+    await until(() => !view.webContents.isLoading() && window.getTitle() === `${map.name} — ${app.getName()}`);
     assert.equal(view.webContents.getURL(), map.url);
     assert.equal(await view.webContents.executeJavaScript('typeof window.maps'), 'undefined');
     assert.equal(await view.webContents.executeJavaScript('typeof require'), 'undefined');
@@ -79,7 +79,7 @@ app.whenReady().then(async () => {
   const before = loads;
   choose('reload-map');
   await until(() => !view.webContents.isLoading());
-  assert.equal(window.getTitle(), `${last.name} — Rain Alarm`);
+  assert.equal(window.getTitle(), `${last.name} — ${app.getName()}`);
   assert(loads > before);
   window.setContentSize(620, 480);
   await until(() => view.getBounds().width === 620);

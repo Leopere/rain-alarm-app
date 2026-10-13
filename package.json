@@ -11,6 +11,7 @@
     "test": "electron scripts/smoke-maps.js",
     "package": "./scripts/package.sh",
     "package:release": "./scripts/package-release.sh",
+    "package:windows": "node scripts/package-windows.mjs",
     "install-app": "./scripts/install.sh"
   },
   "devDependencies": {

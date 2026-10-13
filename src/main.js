@@ -5,6 +5,7 @@ const fs = require('node:fs');
 const { SITES, siteForUrl, permissionAllowed } = require('./weather-sites');
 const MAPS = Object.entries(SITES).map(([id, site]) => ({ id, name: site.label, ...site }));
 const MAP_CLEANUP_CSS = fs.readFileSync(path.join(__dirname, 'map-cleanup.css'), 'utf8');
+const APP_NAME = process.platform === 'win32' ? 'Weather Map' : 'Rain Alarm';
 
 function isMapUrl(map, value) {
   return siteForUrl(value) === (map.provider || map.id);
@@ -103,7 +104,7 @@ function installPermissionPolicy() {
 function createWindow() {
   const mainWindow = new BrowserWindow({
     width: 1120, height: 820, minWidth: 620, minHeight: 480,
-    title: 'Rain Alarm', backgroundColor: '#111', show: false,
+    title: APP_NAME, backgroundColor: '#111', show: false,
     webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
   });
   const views = new Map();
@@ -116,7 +117,7 @@ function createWindow() {
   }
   function title(map, state = '') {
     if (!mainWindow.isDestroyed() && selectedMap === map) {
-      mainWindow.setTitle(`${map.name} — Rain Alarm${state ? ` · ${state}` : ''}`);
+      mainWindow.setTitle(`${map.name} — ${APP_NAME}${state ? ` · ${state}` : ''}`);
     }
   }
   function select(map) {
@@ -195,7 +196,7 @@ function createWindow() {
   return mainWindow;
 }
 
-app.setName('Rain Alarm');
+app.setName(APP_NAME);
 app.setPath('userData', path.join(app.getPath('appData'), 'Rain Alarm'));
 
 if (require.main === module) app.whenReady().then(() => {

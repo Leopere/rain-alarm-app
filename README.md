@@ -21,7 +21,9 @@ Use ⌘1–⌘8 or the Maps menu to switch maps, and ⌘R to reload the active m
 
 ## Install
 
-Download the latest `Rain-Alarm-macOS-Electron-arm64.zip` from the GitHub releases page, unzip it, and open `Rain Alarm.app`.
+On macOS, unzip the release download and open `Rain Alarm.app`. Local release builds use the filename `Rain-Alarm-macOS-arm64.zip`.
+
+On Windows, extract all files from `Weather-Map-Windows.zip`, then open `Weather Map.exe`. Keep the supporting files in the same folder. This is a portable app, so no installer is needed.
 
 For local development, install dependencies:
 
@@ -62,6 +64,14 @@ npm run package:release
 ```
 
 The generated app and zip are written to `release/`.
+
+Create the Windows download from this Mac:
+
+```sh
+npm run package:windows
+```
+
+The command writes `release/Weather-Map-Windows.zip`, containing `Weather Map.exe` and its supporting files. The first Windows build downloads the Windows runtime.
 
 ## Verify
 

@@ -28,7 +28,7 @@ app.whenReady().then(async () => {
   const results = [];
   for (const map of MAPS) {
     Menu.getApplicationMenu().getMenuItemById(map.id).click();
-    await until(() => window.getTitle().startsWith(`${map.name} — Rain Alarm`) && window.contentView.children.at(-1).webContents.getURL() !== '');
+    await until(() => window.getTitle().startsWith(`${map.name} — ${app.getName()}`) && window.contentView.children.at(-1).webContents.getURL() !== '');
     const contents = window.contentView.children.at(-1).webContents;
     await until(() => !contents.isLoading());
     assert(isMapUrl(map, contents.getURL()), 'Live provider must stay on its own site');

@@ -2,11 +2,10 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-APP_NAME="Rain Alarm"
 RELEASE_DIR="${ROOT_DIR}/release"
 VERSION="$(cd "${ROOT_DIR}" && node -p "require('./package.json').version")"
 ARCH="arm64"
-ZIP_NAME="Rain-Alarm-macOS-Electron-${ARCH}.zip"
+ZIP_NAME="Rain-Alarm-macOS-${ARCH}.zip"
 
 command -v ditto >/dev/null
 
