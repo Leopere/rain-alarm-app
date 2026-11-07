@@ -83,6 +83,6 @@ The Electron smoke test uses local fixtures to check all map choices, switching 
 
 ## Delivery
 
-Native ship-it hooks deliver completed work on `main` to `Leopere/rain-alarm-app`. Do not run the legacy `ship.sh` wrapper.
+Commit and normal-push completed work to `main` at `Leopere/rain-alarm-app`, then run `scripts/deploy.sh` to submit the existing `release-rain` Jenkins job. Do not run the legacy `ship.sh` wrapper.
 
 No GitHub Actions workflows are present. The tracked deployment contract targets Jenkins job `release-rain` and GitHub Releases; access and successful runs remain unverified from this Mac. Local packaging creates an artifact; it does not publish a GitHub release.
