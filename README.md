@@ -86,3 +86,27 @@ The Electron smoke test uses local fixtures to check all map choices, switching 
 Commit and normal-push completed work to `main` at `Leopere/rain-alarm-app`, then run `scripts/deploy.sh` to submit the existing `release-rain` Jenkins job. Do not run the legacy `ship.sh` wrapper.
 
 No GitHub Actions workflows are present. The tracked deployment contract targets Jenkins job `release-rain` and GitHub Releases; access and successful runs remain unverified from this Mac. Local packaging creates an artifact; it does not publish a GitHub release.
+
+## Notarized public Mac releases
+
+Commit and normal-push the existing `main` branch, then run
+`scripts/release-macos`. This command submits the exact source revision to
+Jenkins job `public-macos-rain`. Jenkins runs the recorded checks and
+build, signs a separate candidate with Colin Knapp’s Developer ID and secure
+timestamps, retains the Apple notarization submission, staples the accepted
+ticket, and checks Gatekeeper before publishing a verified public download.
+The development repository keeps its existing visibility and license.
+
+Apple review can continue between bounded Jenkins jobs. The existing candidate
+and submission are reused; a pending review does not rebuild or reupload the
+app. Observe the current phase with:
+
+```
+python3 ~/.local/share/jenkins-local/manage-macos-distribution.py observe --app rain
+```
+
+Local package/build commands remain available for development. Public Mac
+publication uses the notarized Jenkins path above. The process preserves the
+installed app, local data, permissions, and working development signature.
+Secure timestamps allow validation at signing time after certificate expiry;
+revocation, restricted-capability profiles, and platform policy still apply.
